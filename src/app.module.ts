@@ -11,6 +11,8 @@ import { DataSourceOptions } from 'typeorm';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MailService } from './mail/mail.service';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { ProfileModule } from './profile/profile.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
     
     UsersModule,
     AuthModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

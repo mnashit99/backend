@@ -8,6 +8,7 @@ import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('users')
 export class UsersController {
@@ -64,23 +65,22 @@ export class UsersController {
 
 @UseGuards(JwtAuthGuard)
   @Get('profile')
-  @ApiBearerAuth() // Tells Swagger this requires Bearer token (JWT)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'User profile fetched successfully', type: User })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@GetUser() user: User) {
-    return user; 
+    return this.usersService.getProfile(user.id);
   }
 
-  // @UseGuards(JwtAuthGuard)
-  // @Patch('profile')
-    // @ApiOperation({ summary: 'Update current user profile' })
-  // @ApiResponse({ status: 200, description: 'User profile updated successfully', type: User })
-  // @ApiResponse({ status: 401, description: 'Unauthorized' })
-  // async updateProfile(@GetUser() user: User, @Body() updateUserDto: UpdateUserDto) {
-  //   await this.usersService.update(user.id, updateUserDto);
-  //   return this.usersService.findOneByEmail(user.email);
-  // }
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile' })
+  async updateProfile(@GetUser() user: User, @Body() dto: UpdateProfileDto) {
+    const updated = await this.usersService.updateProfile(user.id, dto);
+    // remove password before return (or use class-transformer Exclude)
+    // delete updated.password;
+    return updated;
+  }
 
 @UseGuards(JwtAuthGuard)
   @Delete('profile')

@@ -10,7 +10,7 @@ export class MailService {
     await this.mailerService.sendMail({
       to: email,
       subject: 'Password Reset Request',
-      template: './reset-password', // templates/reset-password.hbs
+      template: 'templates/reset-password.hbs', // templates/reset-password.hbs
       context: { resetLink },
     });
   }
