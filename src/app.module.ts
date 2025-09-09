@@ -12,6 +12,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { MailService } from './mail/mail.service';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { ProfileModule } from './profile/profile.module';
+import { AddressesModule } from './addresses/addresses.module';
 import { ProfileModule } from './profile/profile.module';
 
 @Module({
@@ -44,6 +45,7 @@ import { ProfileModule } from './profile/profile.module';
     UsersModule,
     AuthModule,
     ProfileModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

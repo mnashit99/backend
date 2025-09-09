@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Profile } from '../profile-embeddable';
+import { Address } from 'src/addresses/entities/address.entity';
 
 @Entity()
 export class User {
@@ -29,5 +30,8 @@ resetTokenExpiry: Date | null;
 
 @Column(() => Profile)
   profile?: Profile;
+
+  @OneToMany(() => Address, (address) => address.user, { cascade: true })
+addresses: Address[];
 
 }
