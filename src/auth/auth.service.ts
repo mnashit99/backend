@@ -7,6 +7,8 @@ import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { MailService } from 'src/mail/mail.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 
 @Injectable()
@@ -41,8 +43,8 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string) {
-    const user = await this.usersService.findOneByEmail(email);
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.usersService.findOneByEmail(forgotPasswordDto.email);
     if (!user) throw new NotFoundException('User not found');
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -55,7 +57,9 @@ export class AuthService {
     return { message: 'Password reset link sent to email' };
   }
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(resetPasswordDto: ResetPasswordDto) 
+  {
+    const { token, newPassword } = resetPasswordDto;
     const user = await this.usersService.findByResetToken(token);
     if (!user) throw new BadRequestException('Invalid token');
 

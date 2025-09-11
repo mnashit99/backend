@@ -29,10 +29,10 @@ export class UsersService {
     return await this.usersRepository.save(user);
   }
   async findOneByEmail(email: string) {
-  return this.usersRepository.findOne({ where: { email } });
+  return await this.usersRepository.findOne({ where: { email } });
 }
 async findByResetToken(token: string) {
-  return this.usersRepository.findOne({ where: { resetToken: token } });
+  return await this.usersRepository.findOne({ where: { resetToken: token } });
 }
 
 
@@ -61,7 +61,12 @@ async updateProfile(userId: string, dto: UpdateProfileDto): Promise<User | null>
   return safeUser;
 }
 
-  async remove(id: string): Promise<void> {
-    await this.usersRepository.delete(id);
+  async remove(id: string): Promise<User> {
+   const deletedUser = await this.usersRepository.findOne({ where: { id } });
+   if(!deletedUser){
+    throw new NotFoundException('User not found');
+   }
+   await this.usersRepository.delete(id);
+   return deletedUser;
   }
 }

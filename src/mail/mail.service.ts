@@ -1,17 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(
+    private readonly configService: ConfigService,
+  ) {}
+  emailTransport(){
+    const transportor = nodemailer.createTransport({
+      host: this.configService.get<string>('MAIL_HOST'),
+      port: this.configService.get<number>('MAIL_PORT'),
+      secure: false,
+      auth: {
+        user: this.configService.get<string>('MAIL_USER'),
+        pass: this.configService.get<string>('MAIL_PASS'),
+      },
+    });
+    return transportor;
+  }
 
   async sendPasswordReset(email: string, token: string) {
     const resetLink = `http://localhost:3000/auth/reset-password?token=${token}`;
-    await this.mailerService.sendMail({
+    const text = `Hi, \nTo reset your password, click here: ${resetLink}\nIf you did not request this, please ignore this email.`;
+    const transport = this.emailTransport();
+    const options : nodemailer.SendMailOptions = {
+      from: `"No Reply" <${this.configService.get('MAIL_USER')}>`,
       to: email,
       subject: 'Password Reset Request',
-      template: 'templates/reset-password.hbs', // templates/reset-password.hbs
-      context: { resetLink },
-    });
+      html: text,
+    };
+    try{
+    await transport.sendMail(options);
+    console.log('Email sent successfully');
+    }
+    catch(error){
+    console.error('Error sending email:', error);
   }
-}
+  } 
+    // await this.mailerService.sendMail({
+    //   to: email,
+    //   subject: 'Password Reset Request',
+    //   text,
+    //   context: { resetLink },
+    // });
+  }
+
