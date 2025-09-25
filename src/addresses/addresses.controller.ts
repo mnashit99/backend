@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../users/entities/user.entity';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Address } from './entities/address.entity';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AddressesService } from './addresses.service';
 
 @ApiTags('addresses')
@@ -28,14 +28,14 @@ export class AddressesController {
   @ApiOperation({ summary: 'Create a new address' })
   @ApiResponse({ status: 201, description: 'Address created successfully', type: Address })
   async create(@GetUser() user: User, @Body() dto: CreateAddressDto) {
-    return this.addressService.create(user.id, dto);
+    return this.addressService.create(user, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all addresses of the logged-in user' })
   @ApiResponse({ status: 200, description: 'List of addresses', type: [Address] })
   async findAll(@GetUser() user: User) {
-    return this.addressService.findAll(user.id);
+    return this.addressService.findAll(user);
   }
 
   @Patch(':id')
@@ -46,20 +46,20 @@ export class AddressesController {
     @Param('id') id: string,
     @Body() dto: UpdateAddressDto,
   ) {
-    return this.addressService.update(user.id, id, dto);
+    return this.addressService.update(user, id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an address' })
   @ApiResponse({ status: 200, description: 'Address deleted' })
   async remove(@GetUser() user: User, @Param('id') id: string) {
-    return this.addressService.remove(user.id, id);
+    return this.addressService.remove(user, id);
   }
 
   @Patch(':id/default')
   @ApiOperation({ summary: 'Set an address as default' })
   @ApiResponse({ status: 200, description: 'Address set as default', type: Address })
   async setDefault(@GetUser() user: User, @Param('id') id: string) {
-    return this.addressService.setDefault(user.id, id);
+    return this.addressService.setDefault(user, id);
   }
 }

@@ -1,6 +1,5 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
-import { User } from 'src/users/entities/user.entity';
 
 
 dotenv.config();
@@ -12,8 +11,8 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   username: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
-  entities: ['dist/**/*.entity{.ts,.js}'],
-  migrations: ['dist/migration/*.js'],
+  entities: [__dirname + '/../**/*.entity.{js,ts}'],
+  migrations: [__dirname + '/../migration/*.{js,ts}'],
   synchronize: false,
 
 }

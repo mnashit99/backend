@@ -1,7 +1,5 @@
-import { IsString, IsEnum, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AddressType } from '../entities/address.entity';
-
 
 export class CreateAddressDto {
   @ApiProperty()
@@ -24,11 +22,7 @@ export class CreateAddressDto {
   @IsString()
   country: string;
 
-  @ApiProperty({ enum: AddressType, example: AddressType.SHIPPING })
-  @IsEnum(AddressType)
-  type: AddressType;
-
-  @ApiProperty({ example: false })
+  @ApiProperty({ example: false, required: false })
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean;

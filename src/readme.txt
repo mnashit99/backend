@@ -1,3 +1,3 @@
-for generating migrations: npm run typeorm migration:generate src/migration/InitialSchema -- -d src/configs/datasource.ts
-for running migrations: npm run typeorm migration:run -- -d src/configs/datasource.ts
-for reverting migrations: npm run typeorm migration:revert -- -d src/configs/datasource.ts
+for generating migrations: npm run migration:generate -- src/migration/overallSchema
+for running migrations: npm run migration:run
+for reverting migrations: npm run migration:revert

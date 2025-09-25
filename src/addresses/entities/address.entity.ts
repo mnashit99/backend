@@ -1,11 +1,5 @@
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-
-
-export enum AddressType {
-  SHIPPING = 'shipping',
-  BILLING = 'billing',
-}
 
 @Entity()
 export class Address {
@@ -26,9 +20,6 @@ export class Address {
 
   @Column()
   country: string;
-
-  @Column({ type: 'enum', enum: AddressType, default: AddressType.SHIPPING })
-  type: AddressType;
 
   @Column({ default: false })
   isDefault: boolean;

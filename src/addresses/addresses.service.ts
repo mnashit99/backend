@@ -11,28 +11,21 @@ export class AddressesService {
   constructor(
     @InjectRepository(Address)
     private readonly addressRepository: Repository<Address>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(userId: string, dto: CreateAddressDto): Promise<Address> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['addresses'],
-    });
-    if (!user) throw new NotFoundException('User not found');
-
+  async create(user: User, dto: CreateAddressDto): Promise<Address> {
     const address = this.addressRepository.create({ ...dto, user });
 
     // if it's the first address, force as default
-    if (!user.addresses.length) {
+    const existingAddresses = await this.findAll(user);
+    if (existingAddresses.length === 0) {
       address.isDefault = true;
     }
 
-    // if explicitly marked default
+    // if explicitly marked default, unset other defaults first
     if (dto.isDefault) {
       await this.addressRepository.update(
-        { user: { id: userId } },
+        { user: { id: user.id } },
         { isDefault: false },
       );
       address.isDefault = true;
@@ -41,13 +34,13 @@ export class AddressesService {
     return this.addressRepository.save(address);
   }
 
-  async findAll(userId: string): Promise<Address[]> {
-    return this.addressRepository.find({ where: { user: { id: userId } } });
+  async findAll(user: User): Promise<Address[]> {
+    return this.addressRepository.find({ where: { user: { id: user.id } } });
   }
 
-  async update(userId: string, id: string, dto: UpdateAddressDto): Promise<Address> {
+  async update(user: User, id: string, dto: UpdateAddressDto): Promise<Address> {
     const address = await this.addressRepository.findOne({
-      where: { id, user: { id: userId } },
+      where: { id, user: { id: user.id } },
     });
     if (!address) throw new NotFoundException('Address not found');
 
@@ -55,7 +48,7 @@ export class AddressesService {
 
     if (dto.isDefault) {
       await this.addressRepository.update(
-        { user: { id: userId } },
+        { user: { id: user.id } },
         { isDefault: false },
       );
       address.isDefault = true;
@@ -64,9 +57,9 @@ export class AddressesService {
     return this.addressRepository.save(address);
   }
 
-  async remove(userId: string, id: string): Promise<{ message: string }> {
+  async remove(user: User, id: string): Promise<{ message: string }> {
     const address = await this.addressRepository.findOne({
-      where: { id, user: { id: userId } },
+      where: { id, user: { id: user.id } },
     });
     if (!address) throw new NotFoundException('Address not found');
 
@@ -75,7 +68,7 @@ export class AddressesService {
 
     if (wasDefault) {
       const another = await this.addressRepository.findOne({
-        where: { user: { id: userId } },
+        where: { user: { id: user.id } },
       });
       if (another) {
         another.isDefault = true;
@@ -85,14 +78,14 @@ export class AddressesService {
     return { message: 'Address deleted successfully' };
   }
 
-  async setDefault(userId: string, id: string): Promise<Address> {
+  async setDefault(user: User, id: string): Promise<Address> {
     const address = await this.addressRepository.findOne({
-      where: { id, user: { id: userId } },
+      where: { id, user: { id: user.id } },
     });
     if (!address) throw new NotFoundException('Address not found');
 
     await this.addressRepository.update(
-      { user: { id: userId } },
+      { user: { id: user.id } },
       { isDefault: false },
     );
 

@@ -17,6 +17,11 @@ import { AddressesModule } from './addresses/addresses.module';
 import { typeOrmConfig } from './configs/database.config';
 import { MailModule } from './mail/mail.module';
 import { join } from 'path';
+import { ProductsModule } from './products/products.module';
+import { ShippingChargesModule } from './shipping-charges/shipping-charges.module';
+import { PaymentsModule } from './payments/payments.module';
+import { OrdersModule } from './orders/orders.module';
+import { AdminModule } from './admin/admin.module';
 
 
 @Module({
@@ -39,9 +44,6 @@ import { join } from 'path';
     //         pass: config.get('MAIL_PASS'),
     //       },
     //     },
-    //     defaults: {
-    //       from: `"No Reply" <${config.get('MAIL_USER')}>`,
-    //     },
     //     template: {
     //    dir: join(process.cwd(), 'src', 'mail', 'templates'),
     //       adapter: new HandlebarsAdapter(),
@@ -51,11 +53,18 @@ import { join } from 'path';
     // }),
 
     
+
+    
     UsersModule,
     AuthModule,
     AddressesModule,
     CategoriesModule,
     MailModule,
+    ProductsModule,
+    OrdersModule,
+    ShippingChargesModule,
+    PaymentsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],
