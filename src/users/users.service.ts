@@ -7,6 +7,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Profile } from './profile-embeddable';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { AdminUpdateUserDto } from '../admin/dto/admin-update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -28,6 +29,15 @@ export class UsersService {
     const user = await this.usersRepository.create({...createUserDto, password: hashedPassword,role:role });
     return await this.usersRepository.save(user);
   }
+
+  async findAll(): Promise<Omit<User, 'password'>[]> {
+    const users = await this.usersRepository.find();
+    return users.map(user => {
+      const { password, ...result } = user;
+      return result;
+    });
+  }
+
   async findOneByEmail(email: string) {
   return await this.usersRepository.findOne({ where: { email } });
 }
@@ -36,20 +46,37 @@ async findByResetToken(token: string) {
 }
 
 
-async updateProfile(userId: string, dto: UpdateProfileDto): Promise<User | null> {
+async updateProfile(userId: string, dto: UpdateProfileDto, phone: string): Promise<User | null> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    // ensure profile object exists
+    // Update profile data
     user.profile = {
-    ...user.profile,
-    ...dto,
-    birthday: dto.birthday ? new Date(dto.birthday) : user.profile?.birthday,
-  };
+        ...user.profile,
+        ...dto,
+        birthday: dto.birthday ? new Date(dto.birthday) : user.profile?.birthday,
+    };
+
+    // Update phone only if provided
+    if (phone !== undefined) {
+        user.phone = phone; // Direct string assignment
+    }
 
     await this.usersRepository.save(user);
-    // return fresh user (omit password in controller/transformer)
     return await this.usersRepository.findOne({ where: { id: userId } });
+}
+
+  async updateByAdmin(id: string, adminUpdateUserDto: AdminUpdateUserDto): Promise<Omit<User, 'password'>> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID #${id} not found.`);
+    }
+
+    Object.assign(user, adminUpdateUserDto);
+    const updatedUser = await this.usersRepository.save(user);
+
+    const { password, ...result } = updatedUser;
+    return result;
   }
 
   async getProfile(userId: string): Promise<Partial<User> | null> {

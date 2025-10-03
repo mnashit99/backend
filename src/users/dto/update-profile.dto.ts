@@ -5,7 +5,7 @@ export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'Ali Khan' })
   @IsOptional()
   @IsString()
-  fullName?: string;
+  name?: string;
 
   @ApiPropertyOptional({ example: '1995-08-15', description: 'YYYY-MM-DD' })
   @IsOptional()

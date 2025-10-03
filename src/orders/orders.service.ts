@@ -7,7 +7,7 @@ import {
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
-import { DataSource, In, Not, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, Not, Repository } from 'typeorm';
 import { ProductVariant } from '../products/entities/product-variant.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { User } from '../users/entities/user.entity';
@@ -22,6 +22,7 @@ import { GetCheckoutSummaryDto } from './dto/get-checkout-summary.dto';
 import { Address } from '../addresses/entities/address.entity';
 import { OrderStatus } from './entities/order-status.enum';
 import { PaymentMethod } from '../payments/payment-method.enum';
+import { GetOrdersFilterDto } from '../admin/dto/get-orders-filter.dto';
 
 @Injectable()
 export class OrdersService {
@@ -70,31 +71,46 @@ export class OrdersService {
     });
   }
 
-  async addItemToCart(user: User, addItemToCartDto: AddItemToCartDto) {
-    const { productVariantId, quantity } = addItemToCartDto;
-    const cart = await this.findOrCreateCart(user);
+async addItemToCart(user: User, addItemToCartDto: AddItemToCartDto) {
+  const { productVariantId, quantity } = addItemToCartDto;
+  const cart = await this.findOrCreateCart(user);
 
-    const variant = await this.variantRepository.findOne({ where: { id: productVariantId } });
-    if (!variant) {
-      throw new NotFoundException(`Product Variant with ID #${productVariantId} not found.`);
-    }
-    if (variant.stock < quantity) {
-      throw new BadRequestException(`Insufficient stock for variant #${variant.sku}.`);
-    }
-
-    let cartItem = cart.items.find(item => item.variant.id === productVariantId);
-
-    if (cartItem) {
-      cartItem.quantity += quantity;
-    }
-    else {
-      cartItem = this.cartItemRepository.create({ cart, variant, quantity });
-      cart.items.push(cartItem);
-    }
-
-    await this.cartItemRepository.save(cartItem);
-    return cart;
+  const variant = await this.variantRepository.findOne({ where: { id: productVariantId } });
+  if (!variant) {
+    throw new NotFoundException(`Product Variant with ID #${productVariantId} not found.`);
   }
+  if (variant.stock < quantity) {
+    throw new BadRequestException(`Insufficient stock for variant #${variant.sku}.`);
+  }
+
+  // Check if item already exists in cart using query
+  const existingCartItem = await this.cartItemRepository.findOne({
+    where: {
+      cart: { id: cart.id },
+      variant: { id: productVariantId }
+    }
+  });
+
+  if (existingCartItem) {
+    // Update existing item using query builder
+    await this.cartItemRepository
+      .createQueryBuilder()
+      .update()
+      .set({ quantity: () => `quantity + ${quantity}` }) // Use SQL expression to increment
+      .where('id = :id', { id: existingCartItem.id })
+      .execute();
+  } else {
+    // Create new cart item
+    const cartItem = this.cartItemRepository.create({ 
+      cart, 
+      variant, 
+      quantity 
+    });
+    await this.cartItemRepository.save(cartItem);
+  }
+
+  return this.getCart(user);
+}
 
   async updateCartItemQuantity(user: User, itemId: string, updateCartItemDto: UpdateCartItemDto) {
     const { quantity } = updateCartItemDto;
@@ -290,6 +306,25 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID #${orderId} not found.`);
     }
     return order;
+  }
+
+  async findAllOrders(filterDto: GetOrdersFilterDto): Promise<Order[]> {
+    const { status, userId } = filterDto;
+    const where: FindOptionsWhere<Order> = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (userId) {
+      where.user = { id: userId };
+    }
+
+    return this.orderRepository.find({
+      where,
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {

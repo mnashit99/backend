@@ -21,7 +21,8 @@ export class MailService {
   }
 
   async sendPasswordReset(email: string, token: string) {
-    const resetLink = `http://localhost:3000/auth/reset-password?token=${token}`;
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+    const resetLink = `${frontendUrl}/reset-password/${token}`;
     const text = `Hi, \nTo reset your password, click here: ${resetLink}\nIf you did not request this, please ignore this email.`;
     const transport = this.emailTransport();
     const options : nodemailer.SendMailOptions = {

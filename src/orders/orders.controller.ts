@@ -8,7 +8,9 @@ import { AddItemToCartDto } from './dto/add-item-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { ConfirmOrderDto } from './dto/confirm-order.dto';
 import { GetCheckoutSummaryDto } from './dto/get-checkout-summary.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth('JWT-auth')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}

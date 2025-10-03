@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,6 +8,9 @@ import { ProductVariant } from './entities/product-variant.entity';
 import { CreateProductVariantDto } from './dto/create-product-variant.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { Category } from '../categories/entities/category.entity';
+import { CategoriesService } from '../categories/categories.service';
+import { SearchProductDto } from './dto/search-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -16,13 +19,30 @@ export class ProductsService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(ProductVariant)
     private readonly productVariantRepository: Repository<ProductVariant>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
   async create(createProductDto: CreateProductDto) {
     const { categoryId, ...productDetails } = createProductDto;
+
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+      relations: ['children'],
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with id ${categoryId} not found`);
+    }
+
+    if (category.children && category.children.length > 0) {
+      throw new BadRequestException('Products can only be added to leaf-node categories.');
+    }
+
     const newProduct = this.productRepository.create({
       ...productDetails,
-      category: { id: categoryId },
+      category,
     });
     return this.productRepository.save(newProduct);
   }
@@ -47,19 +67,19 @@ export class ProductsService {
     const queryBuilder = this.productRepository.createQueryBuilder('product')
       .leftJoinAndSelect('product.variants', 'variant')
       .leftJoin('product.category', 'category')
-      .where('product.isActive = :isActive', { isActive: true })
-      .andWhere('variant.isActive = :isActive', { isActive: true });
+      .where('product.isActive = :isActive', { isActive: true });
 
     if (categoryId) {
-      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
+      const categoryIds = await this.categoriesService.getCategoryAndDescendantIds(categoryId);
+      queryBuilder.andWhere('product.categoryId IN (:...categoryIds)', { categoryIds });
     }
 
     if (search) {
       queryBuilder.andWhere(
         new Brackets(qb => {
           qb.where('product.name ILIKE :search', { search: `%${search}%` })
-            .orWhere('product.brand ILIKE :search')
-            .orWhere('category.name ILIKE :search');
+            .orWhere('product.brand ILIKE :search', { search: `%${search}%` })
+            .orWhere('category.name ILIKE :search', { search: `%${search}%` });
         }),
       );
     }
@@ -75,6 +95,31 @@ export class ProductsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async search(searchProductDto: SearchProductDto) {
+    const { query } = searchProductDto;
+
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.variants', 'variant')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('product.isActive = :isActive', { isActive: true });
+
+    if (query) {
+      const lowerCaseQuery = query.toLowerCase();
+      queryBuilder.andWhere(
+        new Brackets(qb => {
+          qb.where('LOWER(product.name) LIKE :query', { query: `%${lowerCaseQuery}%` })
+            .orWhere('LOWER(product.brand) LIKE :query', { query: `%${lowerCaseQuery}%` })
+            .orWhere('LOWER(category.name) LIKE :query', { query: `%${lowerCaseQuery}%` })
+            .orWhere('LOWER(variant.description) LIKE :query', { query: `%${lowerCaseQuery}%` })
+            .orWhere('LOWER(variant.sku) LIKE :query', { query: `%${lowerCaseQuery}%` })
+            .orWhere('LOWER(product.tags) LIKE :query', { query: `%${lowerCaseQuery}%` });
+        }),
+      );
+    }
+
+    return queryBuilder.getMany();
   }
 
   async findOne(id: string) {
@@ -93,10 +138,31 @@ export class ProductsService {
 
   async update(id: string, updateProductDto: UpdateProductDto) {
     const { categoryId, ...productDetails } = updateProductDto;
-    const payload = {
+    let category: Category | null = null;
+
+    if (categoryId) {
+      category = await this.categoryRepository.findOne({
+        where: { id: categoryId },
+        relations: ['children'],
+      });
+
+      if (!category) {
+        throw new NotFoundException(`Category with id ${categoryId} not found`);
+      }
+
+      if (category.children && category.children.length > 0) {
+        throw new BadRequestException('Products can only be added to leaf-node categories.');
+      }
+    }
+
+    const payload: any = {
       ...productDetails,
-      ...(categoryId && { category: { id: categoryId } }),
     };
+
+    if (categoryId) {
+      payload.category = category;
+    }
+
     await this.productRepository.update(id, payload);
     return this.findOne(id);
   }

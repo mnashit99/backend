@@ -75,10 +75,8 @@ export class UsersController {
   @Patch('profile')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update current user profile' })
-  async updateProfile(@GetUser() user: User, @Body() dto: UpdateProfileDto) {
-    const updated = await this.usersService.updateProfile(user.id, dto);
-    // remove password before return (or use class-transformer Exclude)
-    // delete updated.password;
+  async updateProfile(@GetUser() user: User, @Body() dto: UpdateProfileDto, @Body('phone') phone: string) {
+    const updated = await this.usersService.updateProfile(user.id, dto, phone);
     return updated;
   }
 

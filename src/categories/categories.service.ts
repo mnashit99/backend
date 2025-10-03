@@ -75,4 +75,21 @@ export class CategoriesService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
+  async getCategoryAndDescendantIds(categoryId: string): Promise<string[]> {
+    const allIds = new Set<string>([categoryId]);
+    await this.recursivelyFindChildren(categoryId, allIds);
+    return Array.from(allIds);
+  }
+
+  private async recursivelyFindChildren(parentId: string, allIds: Set<string>) {
+    const children = await this.categoryRepository.find({
+      where: { parent: { id: parentId } },
+    });
+
+    for (const child of children) {
+      allIds.add(child.id);
+      await this.recursivelyFindChildren(child.id, allIds);
+    }
+  }
 }
